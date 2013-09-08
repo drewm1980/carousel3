@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import numpy
-from numpy import linspace, pi, array, cos, sin, zeros, array, sqrt
+from numpy import linspace, pi, array, cos, sin, zeros, array, sqrt, sign
 from numpy.linalg import solve, norm
 #import casadi
 #from casadi import ssym, vertcat
@@ -22,8 +22,9 @@ h_boom = 8. # height of boom end circle of travel in m
 
 anchor_count = 4 # Number of anchors per anchor ring
 r_force_cone = 10. # in m, Indirectly influences hitch height
-ratio_outer_anchor = 1.0 # ratio of r_outer_anchor_incircle/r_force_cone.  0 to 1
-ratio_inner_anchor = 1.0 # ratio of r_force_cone/r_inner_anchor.  0 to 1  
+eps=.001
+ratio_outer_anchor = 1.0-eps # ratio of r_outer_anchor_incircle/r_force_cone.  0 to 1-eps
+ratio_inner_anchor = 1.0-eps # ratio of r_force_cone/r_inner_anchor.  0 to 1-eps
 f_tether = 1. # N, radial direction
 tether_cost_per_volume = 1. # euros per unit of volume
 tether_breaking_strength = 1. # units of pressure
@@ -33,7 +34,7 @@ def normalize(v):
 
 # Solution for circle-line intersection lifted from Mathworld
 def intersect_circle_line(x1,y1,x2,y2,r):
-    dx = x2-x2
+    dx = x2-x1
     dy = y2-y1
     dr = sqrt(dx*dx + dy*dy)
     D = x1*y2 - x2*y1
@@ -135,16 +136,17 @@ def analyze_carousel(r_boom,
         #return anchor_count, r_ring, num_splits, float(system_cost)
 
 
-for anchor_count in range(4,10,2):
-    for r_outer_anchor in linspace(0.5*r_boom + pi*1e-6,1.2*r_boom):
-        for r_inner_anchor in linspace(0,r_outer_anchor):
-            analyze_carousel(r_boom, 
-                             h_boom, 
-                             anchor_count, 
-                             r_force_cone,
-                             ratio_outer_anchor,
-                             ratio_inner_anchor,
-                             f_tether,
-                             tether_cost_per_volume,
-                             tether_breaking_strength)
+if __name__=='__main__':
+    for anchor_count in range(4,10,2):
+        for r_outer_anchor in linspace(0.5*r_boom + pi*1e-6,1.2*r_boom):
+            for r_inner_anchor in linspace(0,r_outer_anchor):
+                analyze_carousel(r_boom, 
+                                 h_boom, 
+                                 anchor_count, 
+                                 r_force_cone,
+                                 ratio_outer_anchor,
+                                 ratio_inner_anchor,
+                                 f_tether,
+                                 tether_cost_per_volume,
+                                 tether_breaking_strength)
 
