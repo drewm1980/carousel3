@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import numpy
-from numpy import linspace, pi, array, cos, sin, zeros, array, sqrt, sign
+from numpy import linspace, pi, array, cos, sin, tan, arctan2, zeros, array, sqrt, sign
 from numpy.linalg import solve, norm
 #import casadi
 #from casadi import ssym, vertcat
@@ -34,6 +34,7 @@ def normalize(v):
 
 # Solution for circle-line intersection lifted from Mathworld
 def intersect_circle_line(x1,y1,x2,y2,r):
+    print x1,y1,x2,y2,r
     dx = x2-x1
     dy = y2-y1
     dr = sqrt(dx*dx + dy*dy)
@@ -43,9 +44,24 @@ def intersect_circle_line(x1,y1,x2,y2,r):
         raise Exception('Description has wrong sign; no intersection')
     xa = (D*dy + sign(dy)*dx*sqrt(delta))/(dr*dr)
     xb = (D*dy - sign(dy)*dx*sqrt(delta))/(dr*dr)
-    ya = (-D*dx + abs(dy)*sqrt(delta))/dr*dr
-    yb = (-D*dx - abs(dy)*sqrt(delta))/dr*dr
+    ya = (-D*dx + abs(dy)*sqrt(delta))/(dr*dr)
+    yb = (-D*dx - abs(dy)*sqrt(delta))/(dr*dr)
     return xa,xb,ya,yb
+
+# Specialize the above to the case we're computing.
+# Just return the angle we want
+def find_transition_angle(r_anchor_inner,
+                          r_force_cone,
+                          r_anchor_outer,
+                          a_anchor):
+    xa,xb,ya,yb = intersect_circle_line(r_anchor_inner*cos(a_anchor),
+                                        r_anchor_inner*sin(a_anchor),
+                                        r_anchor_outer,
+                                        0,
+                                        r_force_cone)
+    a_transition = arctan2(yb,xb)
+    return a_transition
+
 
 def analyze_carousel(r_boom, 
                      h_boom, 
@@ -82,25 +98,18 @@ def analyze_carousel(r_boom,
     # Horizontal angle between consecutive outer and inner anchors, in radians
     a_anchor = pi/anchor_count
 
-    # Some geometric constructions to get the transition angle between two
-    # cells in closed form
-    slope = r_anchor_inner*sin(a_anchor)/(r_anchor_outer - r_anchor_inner*cos(a_anchor))
-    # r_force_cone * sin(theta_trans) = (r_anchor - r_force_cone*cos(theta_trans)) * slope
-    # sin(theta_trans) = (r_anchor_outer - r_force_cone * cos(theta_trans))*slope/r_force_cone
-    # sin(theta_trans) = r_anchor_outer*slope/r_force_cone - slope*cos(theta_trans)
-    # sin(theta_trans)+slope*cos(theta_trans) = r_anchor_outer*slope/r_force_cone
-
-    # Working here!
     # Angle of rotation is counter-clockwise from above.
     # at theta = 0, boom starts aligned with negative x axis
     # There is an outer anchor aligned with positive x axis
-    xa,xb,ya,yb = intersect_circle_line(r_anchor_inner*cos(a_anchor),
-                          r_anchor_inner*sin(a_anchor),
-                          r_anchor_outer,
-                          0,
-                          r_force_cone)
-    print xa,xb,ya,yb
-    
+
+    # Horizontal angle of first transition between cells
+    a_transition = find_transition_angle(r_anchor_inner,
+                                        r_force_cone,
+                                        r_anchor_outer,
+                                        a_anchor)
+    print a_anchor,a_transition
+    # Working here!
+       
     #max_guy_forces = zeros((2,1))
     #for delta in linspace(0.0,anchorAngle):
         ## Force ballance at centerpoint
@@ -137,7 +146,8 @@ def analyze_carousel(r_boom,
 
 
 if __name__=='__main__':
-    for anchor_count in range(4,10,2):
+    #for anchor_count in range(4,10,2):
+    for anchor_count in range(3,4,1):
         for r_outer_anchor in linspace(0.5*r_boom + pi*1e-6,1.2*r_boom):
             for r_inner_anchor in linspace(0,r_outer_anchor):
                 analyze_carousel(r_boom, 
